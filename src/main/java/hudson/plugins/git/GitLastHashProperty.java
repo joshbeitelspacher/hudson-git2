@@ -26,12 +26,14 @@ public class GitLastHashProperty extends JobProperty<AbstractProject<?, ?>> {
 	public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener)
 			throws InterruptedException, IOException {
 		SCM genericScm = build.getProject().getScm();
-		// Make sure we can cast to GitSCM; it's possible that this will be hudson.scm.NullSCM
-		if (!(genericScm instanceof GitSCM))
+		// Make sure we can cast to GitSCM; it's possible that this will be
+		// hudson.scm.NullSCM
+		if (!(genericScm instanceof GitSCM)) {
 			return true;
+		}
 		GitSCM scm = (GitSCM) genericScm;
 		GitAPI git = new GitAPI(scm.getDescriptor(), launcher, build.getParent().getWorkspace(), listener);
-		String tipHash = git.revParse(scm.getRemoteBranch());
+		String tipHash = git.revParse(scm.getExpandedBranch(build));
 
 		listener.getLogger().println("Setting last build to " + tipHash);
 		this.setLastHashBuilt(tipHash);

@@ -7,15 +7,16 @@ import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Hudson;
+import hudson.model.ParametersAction;
 import hudson.model.TaskListener;
 import hudson.plugins.git.browser.GitWeb;
 import hudson.scm.ChangeLogParser;
 import hudson.scm.RepositoryBrowsers;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
-import hudson.util.ByteBuffer;
 import hudson.util.FormFieldValidator;
 
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
@@ -59,7 +60,7 @@ public class GitSCM extends SCM implements Serializable {
 		GitAPI git = new GitAPI(this.getDescriptor(), launcher, workspace, listener);
 		this.ensureClonedAndFetched(git, listener);
 
-		String tipHash = git.revParse(this.getRemoteBranch());
+		String tipHash = git.revParse(this.getBranch());
 		String lastHash = this.getOrCreateLastProperty(project).getLastHashBuilt();
 		listener.getLogger().println("tip = " + tipHash + ", last = " + lastHash);
 
@@ -76,21 +77,21 @@ public class GitSCM extends SCM implements Serializable {
 		this.ensureClonedAndFetched(git, listener);
 
 		// Only merge if there's a branch to merge that isn't us..
-		if (this.doMerge && !this.getRemoteBranch().equals(this.getRemoteMergeTarget())) {
+		if (this.doMerge && !this.getExpandedBranch(build).equals(this.getExpandedMergeTarget(build))) {
 			listener.getLogger().println("Merging onto " + this.getMergeTarget());
-			git.checkout(this.getRemoteMergeTarget());
+			git.checkout(this.getExpandedMergeTarget(build));
 			if (git.hasGitModules()) {
 				git.submoduleUpdate();
 			}
 			try {
-				git.merge(this.getRemoteBranch());
+				git.merge(this.getExpandedBranch(build));
 			} catch (Exception ex) {
 				listener.getLogger().println("Branch not suitable for integration as it does not merge cleanly");
 				return false;
 			}
 		} else {
-			listener.getLogger().println("Checking out " + this.getRemoteBranch());
-			git.checkout(this.getRemoteBranch());
+			listener.getLogger().println("Checking out " + this.getExpandedBranch(build));
+			git.checkout(this.getExpandedBranch(build));
 			if (git.hasGitModules()) {
 				git.submoduleUpdate();
 			}
@@ -102,7 +103,7 @@ public class GitSCM extends SCM implements Serializable {
 
 		GitLastHashProperty lastProperty = this.getOrCreateLastProperty(build.getProject());
 		String lastHash = lastProperty.getLastHashBuilt();
-		String tipHash = git.revParse(this.getRemoteBranch());
+		String tipHash = git.revParse(this.getExpandedBranch(build));
 		if ((lastHash != null) && (tipHash != null)) {
 			git.log(lastHash, tipHash, changelogFile);
 		}
@@ -156,7 +157,7 @@ public class GitSCM extends SCM implements Serializable {
 		public void doGitExeCheck(StaplerRequest req, StaplerResponse rsp) throws IOException, ServletException {
 			new FormFieldValidator.Executable(req, rsp) {
 				protected void checkExecutable(File exe) throws IOException, ServletException {
-					ByteBuffer baos = new ByteBuffer();
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
 					try {
 						Proc proc = Hudson.getInstance().createLauncher(TaskListener.NULL).launch(
 								new String[] { DescriptorImpl.this.getGitExe(), "--version" }, new String[0], baos,
@@ -198,12 +199,20 @@ public class GitSCM extends SCM implements Serializable {
 		return this.mergeTarget;
 	}
 
-	public String getRemoteBranch() {
-		return "origin/" + this.branch;
+	public String getExpandedBranch(AbstractBuild build) {
+		ParametersAction parameters = build.getAction(ParametersAction.class);
+		if (parameters != null) {
+			return parameters.substitute(build, this.branch);
+		}
+		return this.branch;
 	}
 
-	public String getRemoteMergeTarget() {
-		return "origin/" + this.mergeTarget;
+	public String getExpandedMergeTarget(AbstractBuild build) {
+		ParametersAction parameters = build.getAction(ParametersAction.class);
+		if (parameters != null) {
+			return parameters.substitute(build, this.mergeTarget);
+		}
+		return this.mergeTarget;
 	}
 
 	private void ensureClonedAndFetched(GitAPI git, TaskListener listener) throws IOException, InterruptedException {
