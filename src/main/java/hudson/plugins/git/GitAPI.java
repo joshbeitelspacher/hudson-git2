@@ -102,6 +102,10 @@ public class GitAPI {
 		this.launch("Error checking out " + ref, this.gitExe, "checkout", "-f", ref);
 	}
 
+	public void clean() throws InterruptedException, IOException {
+		this.launch("Error cleaning", this.gitExe, "clean", "-fdx");
+	}
+
 	private void launch(String error, String... args) throws InterruptedException, IOException {
 		int code = this.launcher.launch(args, this.createEnvVarMap(), this.listener.getLogger(),
 				this.workspace.exists() ? this.workspace : null).join();

@@ -33,14 +33,16 @@ public class GitSCM extends SCM implements Serializable {
 	/** Source repository URL from which we pull. */
 	private final String source;
 	private final String branch;
+	private final boolean clean;
 	private final boolean doMerge;
 	private final String mergeTarget;
 	private GitWeb browser;
 
 	@DataBoundConstructor
-	public GitSCM(String source, String branch, boolean doMerge, String mergeTarget, GitWeb browser) {
+	public GitSCM(String source, String branch, boolean clean, boolean doMerge, String mergeTarget, GitWeb browser) {
 		this.source = source;
 		this.branch = branch;
+		this.clean = clean;
 		this.browser = browser;
 		this.doMerge = doMerge;
 		this.mergeTarget = mergeTarget;
@@ -94,6 +96,10 @@ public class GitSCM extends SCM implements Serializable {
 			}
 		}
 
+		if (this.clean) {
+			git.clean();
+		}
+
 		GitLastHashProperty lastProperty = this.getOrCreateLastProperty(build.getProject());
 		String lastHash = lastProperty.getLastHashBuilt();
 		String tipHash = git.revParse(this.getRemoteBranch());
@@ -136,7 +142,8 @@ public class GitSCM extends SCM implements Serializable {
 
 		public SCM newInstance(StaplerRequest req) throws FormException {
 			return new GitSCM(req.getParameter("git.source"), req.getParameter("git.branch"), req
-					.getParameter("git.merge") != null, req.getParameter("git.mergeTarget"), RepositoryBrowsers
+					.getParameter("git.clean") != null, req.getParameter("git.merge") != null, req
+					.getParameter("git.mergeTarget"), RepositoryBrowsers
 					.createInstance(GitWeb.class, req, "git.browser"));
 		}
 
@@ -172,6 +179,10 @@ public class GitSCM extends SCM implements Serializable {
 
 	public String getBranch() {
 		return this.branch;
+	}
+
+	public boolean getClean() {
+		return this.clean;
 	}
 
 	@Override
