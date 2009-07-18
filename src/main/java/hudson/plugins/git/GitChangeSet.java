@@ -32,101 +32,25 @@ public class GitChangeSet extends ChangeLogSet.Entry {
 			if (line.length() > 0) {
 				if (line.startsWith("commit ")) {
 					this.id = line.split(" ")[1];
-				} else if (line.startsWith("tree")) {
-				} else if (line.startsWith("parent")) {
+				} else if (line.startsWith("tree ")) {
+				} else if (line.startsWith("parent ")) {
 					// parent
-				} else if (line.startsWith("committer")) {
-
+				} else if (line.startsWith("committer ")) {
 					this.author = line.substring(10, line.indexOf(" <"));
 
 				} else if (line.startsWith("author ")) {
-
 				} else if (line.startsWith("    ")) {
-					comment += line + "\n";
+					comment += line.substring(4) + "\n";
+				} else if (line.startsWith("A\t") || line.startsWith("C\t") || line.startsWith("D\t")
+						|| line.startsWith("M\t") || line.startsWith("R\t") || line.startsWith("T\t")) {
+					this.affectedPaths.add(line.substring(2));
 				} else {
-
-					if (line.startsWith(" create")) {
-						// " create mode 101010 path"
-						String[] items = line.split(" ");
-
-						String pathString = line.substring(line.indexOf(items[4]));
-						this.affectedPaths.add(pathString);
-					} else if (line.startsWith(" delete")) {
-						// " delete mode 101010 path"
-						String[] items = line.split(" ");
-
-						String pathString = line.substring(line.indexOf(items[4]));
-						this.affectedPaths.add(pathString);
-
-					} else if (line.startsWith(" rename")) {
-						// " rename path (change amount%)"
-						String[] items = line.split(" ");
-						String pathString = line.substring(line.indexOf(items[2]));
-						// remove the trailing percentage
-						pathString = pathString.substring(0, pathString.lastIndexOf(" "));
-
-						String[] paths = this.unsplit(pathString);
-
-						this.affectedPaths.add(paths[0]);
-						this.affectedPaths.add(paths[1]);
-
-					} else if (line.startsWith(" copy")) {
-						// " copy path (change amount%)"
-						String[] items = line.split(" ");
-						String pathString = line.substring(line.indexOf(items[2]));
-
-						// remove the trailing percentage
-						pathString = pathString.substring(0, pathString.lastIndexOf(" "));
-
-						String[] paths = this.unsplit(pathString);
-
-						// only affect the target..
-						this.affectedPaths.add(paths[1]);
-
-					} else if (line.startsWith(" mode")) {
-						// Ignore mode change
-					} else if (line.startsWith(" ")) {
-						throw new RuntimeException("Log contains line that is not expected: " + line);
-					} else {
-						// Ignore
-					}
-
+					// Ignore
 				}
 			}
-
 		}
 
 		this.msg = comment;
-	}
-
-	public String[] unsplit(String data) {
-		// Given modules/intray/{mergeFiles/WEB-INF/classes =>
-		// src/main/resources/com/nirima}/modules.xml
-		// return the two paths specified
-		try {
-			if (!data.contains("{")) {
-				String left = data.substring(0, data.indexOf(" => "));
-				String right = data.substring(data.indexOf(" => ") + 4);
-				return new String[] { left, right };
-			} else {
-
-				String pre = data.substring(0, data.indexOf('{'));
-				String post = data.substring(data.indexOf('}') + 1);
-
-				String left = data.substring(data.indexOf('{') + 1, data.indexOf(" => "));
-				String right = data.substring(data.indexOf(" => ") + 4, data.indexOf("}"));
-
-				String leftItem = pre + left + post;
-				String rightItem = pre + right + post;
-
-				// Special - repace any // with /
-				leftItem = leftItem.replaceAll("//", "/");
-				rightItem = rightItem.replaceAll("//", "/");
-				return new String[] { leftItem, rightItem };
-			}
-		} catch (Exception ex) {
-			throw new RuntimeException(ex);
-		}
 	}
 
 	public void setParent(ChangeLogSet parent) {

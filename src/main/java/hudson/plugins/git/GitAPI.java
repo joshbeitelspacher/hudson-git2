@@ -62,7 +62,7 @@ public class GitAPI {
 
 	public void log(String revFrom, String revTo, File file) throws InterruptedException, IOException {
 		ArgumentListBuilder args = new ArgumentListBuilder();
-		args.add(this.gitExe, "log", "--numstat", "-M", "--summary", "--pretty=raw", revFrom + ".." + revTo);
+		args.add(this.gitExe, "log", "--name-status", "-M", "--summary", "--pretty=raw", revFrom + ".." + revTo);
 
 		file.delete();
 		FileOutputStream fos = new FileOutputStream(file);
