@@ -2,20 +2,23 @@ package hudson.plugins.git;
 
 import hudson.model.User;
 import hudson.scm.ChangeLogSet;
+import hudson.tasks.Mailer;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 
 /**
  * Represents a change set.
- *
+ * 
  * @author Nigel Magnay
  */
 public class GitChangeSet extends ChangeLogSet.Entry {
 
 	private Collection<String> affectedPaths = new HashSet<String>();
 	private String author;
+	private String authorEmail;
 	private String msg;
 	private String id;
 
@@ -37,7 +40,7 @@ public class GitChangeSet extends ChangeLogSet.Entry {
 					// parent
 				} else if (line.startsWith("committer ")) {
 					this.author = line.substring(10, line.indexOf(" <"));
-
+					this.authorEmail = line.substring(line.indexOf(" <") + 2, line.indexOf("> "));
 				} else if (line.startsWith("author ")) {
 				} else if (line.startsWith("    ")) {
 					comment += line.substring(4) + "\n";
@@ -64,7 +67,19 @@ public class GitChangeSet extends ChangeLogSet.Entry {
 
 	@Override
 	public User getAuthor() {
-		return User.get(this.author, true);
+		User user = User.get(this.author, false);
+
+		// if the user doesn't exist create it and set the email address
+		if (user == null) {
+			user = User.get(this.author, true);
+			try {
+				user.addProperty(new Mailer.UserProperty(this.authorEmail));
+			} catch (IOException e) {
+				// ignore error
+			}
+		}
+
+		return user;
 	}
 
 	@Override
