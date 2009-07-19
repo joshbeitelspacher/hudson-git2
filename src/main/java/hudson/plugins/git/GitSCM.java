@@ -11,7 +11,6 @@ import hudson.model.ParametersAction;
 import hudson.model.TaskListener;
 import hudson.plugins.git.browser.GitWeb;
 import hudson.scm.ChangeLogParser;
-import hudson.scm.RepositoryBrowsers;
 import hudson.scm.SCM;
 import hudson.scm.SCMDescriptor;
 import hudson.util.FormFieldValidator;
@@ -20,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.Serializable;
+import java.net.URL;
 import java.util.Map;
 
 import javax.servlet.ServletException;
@@ -142,10 +142,15 @@ public class GitSCM extends SCM implements Serializable {
 		}
 
 		public SCM newInstance(StaplerRequest req) throws FormException {
+			GitWeb gitWeb = null;
+			try {
+				URL url = new URL(req.getParameter("gitweb.url"));
+				gitWeb = new GitWeb(url);
+			} catch (Exception e) {
+			}
 			return new GitSCM(req.getParameter("git.source"), req.getParameter("git.branch"), req
 					.getParameter("git.clean") != null, req.getParameter("git.merge") != null, req
-					.getParameter("git.mergeTarget"), RepositoryBrowsers
-					.createInstance(GitWeb.class, req, "git.browser"));
+					.getParameter("git.mergeTarget"), gitWeb);
 		}
 
 		public boolean configure(StaplerRequest req) throws FormException {
@@ -240,9 +245,9 @@ public class GitSCM extends SCM implements Serializable {
 		GitAPI git = new GitAPI(this.getDescriptor(), Hudson.getInstance().createLauncher(TaskListener.NULL), build
 				.getProject().getWorkspace(), TaskListener.NULL);
 		try {
-			String rev = git.revParse(this.getRemoteBranch());
+			String rev = git.revParse(this.getExpandedBranch(build));
 			env.put("GIT_REVISION", rev);
-			rev = git.revParse(this.getRemoteBranch(), true);
+			rev = git.revParse(this.getExpandedBranch(build), true);
 			env.put("GIT_REVISION_SHORT", rev);
 		} catch (Exception e) {
 

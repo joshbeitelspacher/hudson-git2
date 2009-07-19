@@ -18,9 +18,9 @@ public class GitWeb extends RepositoryBrowser<GitChangeSet> {
 	private final URL url;
 
 	@DataBoundConstructor
-	public GitWeb(String url) throws MalformedURLException {
+	public GitWeb(URL url) {
 
-		this.url = new URL(url);
+		this.url = url;
 
 	}
 

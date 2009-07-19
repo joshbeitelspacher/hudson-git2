@@ -19,8 +19,9 @@ public class GitChangeSet extends ChangeLogSet.Entry {
 	private Collection<String> affectedPaths = new HashSet<String>();
 	private String author;
 	private String authorEmail;
-	private String msg;
+	private String comment;
 	private String id;
+	private String title;
 
 	public GitChangeSet(List<String> lines) {
 		if (lines.size() > 0) {
@@ -53,7 +54,14 @@ public class GitChangeSet extends ChangeLogSet.Entry {
 			}
 		}
 
-		this.msg = comment;
+		this.comment = comment;
+
+		int endOfFirstLine = this.comment.indexOf('\n');
+		if (endOfFirstLine == -1) {
+			this.title = this.comment;
+		} else {
+			this.title = this.comment.substring(0, endOfFirstLine);
+		}
 	}
 
 	public void setParent(ChangeLogSet parent) {
@@ -84,11 +92,15 @@ public class GitChangeSet extends ChangeLogSet.Entry {
 
 	@Override
 	public String getMsg() {
-		return this.msg;
+		return this.title;
 	}
 
 	public String getId() {
 		return this.id;
+	}
+
+	public String getComment() {
+		return this.comment;
 	}
 
 }
